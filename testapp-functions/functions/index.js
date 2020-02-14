@@ -19,6 +19,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const Scream = admin.firestore().collection("screams");
+const db = admin.firestore();
 
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
@@ -83,17 +84,44 @@ app.post("/signup", (req, res) => {
     handle: req.body.handle
   };
   // TODO: validate data
-  firebase
-    .auth()
-    .createUserWithEmailAndPassword(newUser.email, newUser.password)
+
+  let token, userId;
+
+  db.doc(`/users/${newUser.handle}`)
+    .get()
+    .then(doc => {
+      if (doc.exists) {
+        return res.status(400).json({ handle: "this handle is already taken" });
+      } else {
+        return firebase
+          .auth()
+          .createUserWithEmailAndPassword(newUser.email, newUser.password);
+      }
+    })
     .then(data => {
-      return res
-        .status(201)
-        .json({ message: `user ${data.user.uid} signed up successfully` });
+      userId = data.user.uid;
+      return data.user.getIdToken();
+    })
+    .then(idToken => {
+      token = idToken;
+      const userCredentials = {
+        handle: newUser.handle,
+        email: newUser.email,
+        createdAt: new Date().toISOString(),
+        userId: userId
+      };
+      return db.doc(`/users/${newUser.handle}`).set(userCredentials);
+    })
+    .then(() => {
+      return res.status(201).json({ token });
     })
     .catch(err => {
-      console.log(err);
-      return res.status(500).json({ error: err.code });
+      console.error(err);
+      if (err.code === "auth/email-already-in-use") {
+        return res.status(400).json({ email: "email is already in use" });
+      } else {
+        return res.status(500).json({ error: err.code });
+      }
     });
 });
 

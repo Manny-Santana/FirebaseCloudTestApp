@@ -75,6 +75,16 @@ app.post("/scream", (req, res) => {
 // });
 
 // Signup route
+// validation helper function
+const isEmpty = string => {
+  if (string.trim() === "") return true;
+  else return false;
+};
+const isEmail = email => {
+  const emailRegEx = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  if (email.match(emailRegEx)) return true;
+  else return false;
+};
 
 app.post("/signup", (req, res) => {
   const newUser = {
@@ -83,7 +93,27 @@ app.post("/signup", (req, res) => {
     confirmPassword: req.body.confirmPassword,
     handle: req.body.handle
   };
+  let errors = {};
+
+  if (isEmpty(newUser.email)) {
+    errors.email = "email must not be empty";
+  } else if (!isEmail(newUser.email)) {
+    errors.email = "must be a valid email address";
+  }
+
+  // password validation
+  if (isEmpty(newUser.password)) errors.password = "must not be empty";
+
+  if (newUser.password !== newUser.confirmPassword)
+    errors.confirmPassword = "Passwords must match";
+
+  // user handle empty validation
+  if (isEmpty(newUser.handle)) errors.handle = "must not be empty";
+
+  if (Object.keys(errors).length > 0) return res.status(400).json(errors);
   // TODO: validate data
+  //make sure email is not empty
+  //make sure password and confirm match
 
   let token, userId;
 

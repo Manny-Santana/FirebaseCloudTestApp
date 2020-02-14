@@ -2,8 +2,22 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const express = require("express");
 const app = express();
+const firebase = require("firebase");
+require("dotenv").config();
 
 admin.initializeApp();
+
+const firebaseConfig = {
+  apiKey: process.env.API_KEY,
+  authDomain: "test-c0525.firebaseapp.com",
+  databaseURL: "https://test-c0525.firebaseio.com",
+  projectId: "test-c0525",
+  storageBucket: "test-c0525.appspot.com",
+  messagingSenderId: "433534693802",
+  appId: "1:433534693802:web:bb6a5b22c358a9d4c73bd3",
+  measurementId: "G-8BVNHJTMXP"
+};
+firebase.initializeApp(firebaseConfig);
 const Scream = admin.firestore().collection("screams");
 
 // // Create and Deploy Your First Cloud Functions
@@ -58,5 +72,29 @@ app.post("/scream", (req, res) => {
 // exports.createScream = functions.https.onRequest((req, res) => {
 
 // });
+
+// Signup route
+
+app.post("/signup", (req, res) => {
+  const newUser = {
+    email: req.body.email,
+    password: req.body.password,
+    confirmPassword: req.body.confirmPassword,
+    handle: req.body.handle
+  };
+  // TODO: validate data
+  firebase
+    .auth()
+    .createUserWithEmailAndPassword(newUser.email, newUser.password)
+    .then(data => {
+      return res
+        .status(201)
+        .json({ message: `user ${data.user.uid} signed up successfully` });
+    })
+    .catch(err => {
+      console.log(err);
+      return res.status(500).json({ error: err.code });
+    });
+});
 
 exports.api = functions.https.onRequest(app);
